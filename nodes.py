@@ -266,6 +266,9 @@ class SCGFoundation1Sampler:
             "sigma_max": sigma_max,
         }
 
+        if seed == -1:
+            seed = np.random.randint(0, 2**31 - 1)
+
         print(f"{LOG_PREFIX} Generating with {steps} steps, cfg={cfg_scale}, sampler={sampler_type}")
 
         output = generate_diffusion_cond(
