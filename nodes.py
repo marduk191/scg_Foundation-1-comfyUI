@@ -12,7 +12,6 @@ import importlib.util
 import math
 import os
 import random as _random
-import site
 import string
 import sys
 import wave
@@ -23,8 +22,8 @@ import torch
 import folder_paths
 
 # ComfyUI ships a stripped-down k_diffusion (comfy/k_diffusion) that lacks the
-# `external` submodule required by stable_audio_tools.  Inject it from the
-# user/system site-packages if missing.
+# `external` submodule required by stable_audio_tools.  Inject the bundled
+# copy when missing so the node works inside a venv.
 def _ensure_k_diffusion_external():
     try:
         import k_diffusion
@@ -32,25 +31,13 @@ def _ensure_k_diffusion_external():
         return
     if hasattr(k_diffusion, 'external'):
         return
-    candidates = []
-    try:
-        candidates += site.getsitepackages()
-    except AttributeError:
-        pass
-    try:
-        candidates.append(site.getusersitepackages())
-    except AttributeError:
-        pass
-    for sitedir in candidates:
-        ext_path = os.path.join(sitedir, 'k_diffusion', 'external.py')
-        if os.path.exists(ext_path):
-            spec = importlib.util.spec_from_file_location('k_diffusion.external', ext_path)
-            ext_mod = importlib.util.module_from_spec(spec)
-            ext_mod.__package__ = 'k_diffusion'
-            spec.loader.exec_module(ext_mod)
-            k_diffusion.external = ext_mod
-            sys.modules['k_diffusion.external'] = ext_mod
-            return
+    _ext_path = os.path.join(os.path.dirname(__file__), '_k_diffusion_external.py')
+    spec = importlib.util.spec_from_file_location('k_diffusion.external', _ext_path)
+    ext_mod = importlib.util.module_from_spec(spec)
+    ext_mod.__package__ = 'k_diffusion'
+    spec.loader.exec_module(ext_mod)
+    k_diffusion.external = ext_mod
+    sys.modules['k_diffusion.external'] = ext_mod
 
 _ensure_k_diffusion_external()
 
